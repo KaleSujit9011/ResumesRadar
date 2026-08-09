@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Welcome, {{user}}</h2>
+<div class="card">
+    <h3>Targeted Role Resume Analyser</h3>
+    <form method="POST" enctype="multipart/form-data">
+        <textarea name="resume" placeholder="Paste your Resume(optional)"></textarea>
+        <p>OR upload file:</p>
+        <input type="file" name="file">
+        <input name="role" placeholder="Next targeted role, eg: Backend Developer, AI Engineer">
+        <textarea name="job_description" placeholder="Paste job description for matching(optional)"></textarea>
+        <button type="submit">Generate Targeted Report</button>
+    </form>
+</div>
+
+{% if result %}
+<div class="card result-panel">
+    {% if result.error %}
+    <p class="error">Error: {{result.error}}</p>
+    {% endif %}
+    <div class="ats-score">
+        <span>ATS Score</span>
+        <strong>{{ result.get("ats_score", 0) }}/100</strong>
+    </div>
+    <div class="ats-score">
+        <span>Job Match Score</span>
+        <strong>{{ result.get("job_match_score", 0) }}/100</strong>
+    </div>
+    <h3>Targeted Role Report</h3>
+    {% if result.get("target_role") %}
+    <p><strong>Target Role:</strong> {{ result.get("target_role") }}</p>
+    {% endif %}
+    {% if result.get("role_fit_summary") %}
+    <p>{{ result.get("role_fit_summary") }}</p>
+    {% endif %}
+    <h3>Section-wise ATS Score</h3>
+    <div class="score-grid">
+        {% for section, score in result.get("section_scores", {}).items() %}
+        <div class="score-item">
+            <span>{{ section.replace("_", " ").title() }}</span>
+            <strong>{{ score }}/100</strong>
+        </div>
+        {% endfor %}
+    </div>
+    <h3>Job Description Matching</h3>
+    <h4>Matched Keywords</h4>
+    <ul>
+        {% for s in result.get("matched_keywords",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h4>Missing Keywords</h4>
+    <ul>
+        {% for s in result.get("missing_keywords",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Skills</h3>
+    <ul>
+        {% for s in result.get("skills",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Missing Skills</h3>
+    <ul>
+        {% for s in result.get("missing_skills",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Skill Updates Needed</h3>
+    <ul>
+        {% for s in result.get("skill_updates",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Resume Updates Needed</h3>
+    <ul>
+        {% for s in result.get("resume_updates",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Resume Improvement Suggestions</h3>
+    <ul>
+        {% for s in result.get("resume_improvement_suggestions",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Project Suggestions</h3>
+    <ul>
+        {% for s in result.get("project_suggestions",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Priority Actions</h3>
+    <ul>
+        {% for s in result.get("priority_actions",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Roadmap</h3>
+    <ul>
+        {% for s in result.get("roadmap",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <h3>Interview Question List</h3>
+    <ul>
+        {% for s in result.get("interview_questions",[]) %}
+        <li>{{ s }}</li>
+        {% endfor %}
+    </ul>
+    <button type="button" class="download-report" data-report='{{ result|tojson }}'>
+        Download Analysis
+    </button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function formatAnalysisReport(report) {
+        const lines = [
+            "ResumeRadar Analysis",
+            "",
+            `Target Role: ${report.target_role || "Not specified"}`,
+            `ATS Score: ${report.ats_score || 0}/100`,
+            `Job Match Score: ${report.job_match_score || 0}/100`,
+            "",
+            "Role Fit Summary:",
+            report.role_fit_summary || "Not available",
+            "",
+            "Section-wise ATS Score:",
+            ...Object.entries(report.section_scores || {}).map(([section, score]) => {
+                const label = section.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+                return `- ${label}: ${score}/100`;
+            }),
+            "",
+            "Matched Keywords:",
+            ...(report.matched_keywords || []).map((item) => `- ${item}`),
+            "",
+            "Missing Keywords:",
+            ...(report.missing_keywords || []).map((item) => `- ${item}`),
+            "",
+            "Skills:",
+            ...(report.skills || []).map((item) => `- ${item}`),
+            "",
+            "Missing Skills:",
+            ...(report.missing_skills || []).map((item) => `- ${item}`),
+            "",
+            "Skill Updates Needed:",
+            ...(report.skill_updates || []).map((item) => `- ${item}`),
+            "",
+            "Resume Updates Needed:",
+            ...(report.resume_updates || []).map((item) => `- ${item}`),
+            "",
+            "Resume Improvement Suggestions:",
+            ...(report.resume_improvement_suggestions || []).map((item) => `- ${item}`),
+            "",
+            "Project Suggestions:",
+            ...(report.project_suggestions || []).map((item) => `- ${item}`),
+            "",
+            "Priority Actions:",
+            ...(report.priority_actions || []).map((item) => `- ${item}`),
+            "",
+            "Roadmap:",
+            ...(report.roadmap || []).map((item) => `- ${item}`),
+            "",
+            "Interview Questions:",
+            ...(report.interview_questions || []).map((item) => `- ${item}`)
+        ];
+
+        if (report.error) {
+            lines.push("", `Error: ${report.error}`);
+        }
+
+        return lines.join("\n");
+    }
+
+    document.querySelectorAll(".download-report").forEach((button) => {
+        button.addEventListener("click", () => {
+            const report = JSON.parse(button.dataset.report);
+            const blob = new Blob([formatAnalysisReport(report)], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "resume-analysis.txt";
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+    });
+</script>
+{% endblock %}

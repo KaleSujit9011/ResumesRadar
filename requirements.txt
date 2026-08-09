@@ -1,0 +1,9 @@
+flask
+sqlalchemy
+PyMySQL
+groq
+python-dotenv
+PyPDF2
+python-docx
+gunicorn
+Werkzeug

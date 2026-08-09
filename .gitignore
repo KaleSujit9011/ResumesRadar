@@ -1,0 +1,25 @@
+# Ignore environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+
+# Virtual environments
+venv/
+.venv/
+
+# Local/editor files
+.idea/
+.vscode/
+*.log
+
+# Local uploads and generated files
+uploads/
+instance/
+#leran file
+learn.txt
